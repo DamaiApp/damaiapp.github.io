@@ -25,7 +25,7 @@
     let formData = new FormData();
     formData.append("file", file);
 
-    fetch("https://flask-axure-xyz.run.app/upload", {
+    fetch("https://axurepage-823433450788.us-central1.run.app/upload", {
       method: "POST",
       body: formData
     })
@@ -48,7 +48,7 @@
     let statusMessage = document.getElementById("statusMessage");
 
     function pollStatus() {
-      fetch(`https://flask-axure-xyz.run.app/status/${projectId}`)
+      fetch(`https://axurepage-823433450788.us-central1.run.app/status/${projectId}`)
       .then(response => response.json())
        .then(data => {
         if (data.status === "success") {
