@@ -4,11 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Axure ZIP 上傳</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #loading, #deploying {
+            display: none;
+            font-size: 18px;
+            color: blue;
+            margin-top: 10px;
+        }
+        #loading::after, #deploying::after {
+            content: " ⏳";
+            animation: dots 1.5s steps(3, end) infinite;
+        }
+        @keyframes dots {
+            0% { content: " ⏳"; }
+            33% { content: " ⏳."; }
+            66% { content: " ⏳.."; }
+            100% { content: " ⏳..."; }
+        }
+        #statusMessage.success {
+            color: green;
+            font-weight: bold;
+        }
+        #statusMessage.error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 <h2>Axure ZIP 上傳</h2>
 <input type="file" id="fileInput">
 <button onclick="uploadFile()">上傳</button>
+
+<p id="loading">📤 上傳中...</p>
+<p id="deploying">🔄 部署狀態檢查中...</p>
+
 <p id="message"></p>
 <p id="statusMessage"></p>
 
@@ -25,40 +60,55 @@
     let formData = new FormData();
     formData.append("file", file);
 
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("message").innerText = "";
+    document.getElementById("statusMessage").innerText = "";
+
     fetch("https://axurepage-823433450788.us-central1.run.app/upload", {
       method: "POST",
       body: formData
     })
     .then(response => response.json())
      .then(data => {
+      document.getElementById("loading").style.display = "none";
       if (data.url) {
         document.getElementById("message").innerHTML =
-            `<a href="${data.url}" target="_blank">點此查看已上傳的 Axure 頁面</a>`;
-
-        // 開始檢查部署狀態
+            `<a href="${data.url}" target="_blank">✅ 上傳成功！點此查看 Axure 頁面</a>`;
         checkDeploymentStatus(data.project_id);
       } else {
         document.getElementById("message").innerText = data.error || "上傳失敗";
       }
     })
-     .catch(error => console.error("上傳錯誤:", error));
+     .catch(error => {
+      console.error("上傳錯誤:", error);
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("message").innerText = "❌ 上傳失敗，請稍後再試";
+    });
   }
 
   function checkDeploymentStatus(projectId) {
     let statusMessage = document.getElementById("statusMessage");
+    document.getElementById("deploying").style.display = "block";
 
     function pollStatus() {
       fetch(`https://axurepage-823433450788.us-central1.run.app/status/${projectId}`)
       .then(response => response.json())
        .then(data => {
         if (data.status === "success") {
-          statusMessage.innerHTML = `<span style="color: green;">✅ 已成功部署！<a href="${data.url}" target="_blank">點此查看</a></span>`;
+          document.getElementById("deploying").style.display = "none";
+          statusMessage.className = "success";
+          statusMessage.innerHTML = `✅ 部署成功！<a href="${data.url}" target="_blank">點此查看</a>`;
         } else {
-          statusMessage.innerText = "⏳ 正在部署中，請稍候...";
+          statusMessage.innerText = "⏳ 部署狀態檢查中...";
           setTimeout(pollStatus, 3000); // 每 3 秒檢查一次
         }
       })
-       .catch(error => console.error("檢查部署狀態錯誤:", error));
+       .catch(error => {
+        console.error("檢查部署狀態錯誤:", error);
+        document.getElementById("deploying").style.display = "none";
+        statusMessage.className = "error";
+        statusMessage.innerText = "❌ 部署失敗，請稍後再試";
+      });
     }
 
     pollStatus();
