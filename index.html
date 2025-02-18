@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axure ZIP 上傳系統</title>
+    <title>Axure ZIP 上傳</title>
 </head>
 <body>
 <h2>Axure ZIP 上傳</h2>
 <input type="file" id="fileInput">
 <button onclick="uploadFile()">上傳</button>
 <p id="message"></p>
+<p id="statusMessage"></p>
 
 <script>
   function uploadFile() {
@@ -24,7 +25,7 @@
     let formData = new FormData();
     formData.append("file", file);
 
-    fetch("https://xxxxxx.execute-api.us-east-1.amazonaws.com/upload", {
+    fetch("https://flask-axure-xyz.run.app/upload", {
       method: "POST",
       body: formData
     })
@@ -33,11 +34,34 @@
       if (data.url) {
         document.getElementById("message").innerHTML =
             `<a href="${data.url}" target="_blank">點此查看已上傳的 Axure 頁面</a>`;
+
+        // 開始檢查部署狀態
+        checkDeploymentStatus(data.project_id);
       } else {
         document.getElementById("message").innerText = data.error || "上傳失敗";
       }
     })
      .catch(error => console.error("上傳錯誤:", error));
+  }
+
+  function checkDeploymentStatus(projectId) {
+    let statusMessage = document.getElementById("statusMessage");
+
+    function pollStatus() {
+      fetch(`https://flask-axure-xyz.run.app/status/${projectId}`)
+      .then(response => response.json())
+       .then(data => {
+        if (data.status === "success") {
+          statusMessage.innerHTML = `<span style="color: green;">✅ 已成功部署！<a href="${data.url}" target="_blank">點此查看</a></span>`;
+        } else {
+          statusMessage.innerText = "⏳ 正在部署中，請稍候...";
+          setTimeout(pollStatus, 3000); // 每 3 秒檢查一次
+        }
+      })
+       .catch(error => console.error("檢查部署狀態錯誤:", error));
+    }
+
+    pollStatus();
   }
 </script>
 </body>
